@@ -42,7 +42,6 @@
       overflow-x: hidden;
     }
 
-    /* ── Layout ── */
     #app { display: flex; flex-direction: column; min-height: 100vh; }
 
     header {
@@ -76,7 +75,6 @@
     .page { display: none; }
     .page.visible { display: block; }
 
-    /* ── Input card ── */
     .input-card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -106,7 +104,6 @@
     .hint { font-size: 12px; color: var(--muted); margin-top: 9px; }
     .hint span { color: var(--accent); font-family: monospace; }
 
-    /* ── Toast ── */
     #toast {
       position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
       background: var(--green); color: #fff; padding: 12px 22px;
@@ -117,7 +114,6 @@
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     #toast.error { background: var(--red); }
 
-    /* ── Stat chips ── */
     .stats { display: flex; gap: 10px; margin-bottom: 20px; }
     .stat-chip {
       flex: 1; background: var(--card); border: 1px solid var(--border);
@@ -126,13 +122,11 @@
     .stat-chip .value { font-size: 18px; font-weight: 700; color: var(--accent); }
     .stat-chip .label { font-size: 11px; color: var(--muted); margin-top: 3px; }
 
-    /* ── Section title ── */
     .section-title {
       font-size: 12px; text-transform: uppercase; letter-spacing: .8px;
       color: var(--muted); margin-bottom: 12px; padding-left: 2px;
     }
 
-    /* ── Transaction list ── */
     .tx-list { display: flex; flex-direction: column; gap: 8px; }
     .tx-item {
       background: var(--card); border: 1px solid var(--border);
@@ -162,7 +156,6 @@
     }
     .empty-state .emoji { font-size: 44px; display: block; margin-bottom: 12px; }
 
-    /* ── Resumo page ── */
     .month-selector {
       display: flex; align-items: center; justify-content: space-between;
       background: var(--card); border: 1px solid var(--border);
@@ -198,12 +191,6 @@
     }
     .btn-export:hover { background: var(--accent); }
     .btn-export:active { transform: scale(.98); }
-
-    /* ── Badge ── */
-    .badge {
-      display: inline-block; font-size: 10px; font-weight: 700;
-      padding: 2px 8px; border-radius: 20px; text-transform: uppercase;
-    }
   </style>
 </head>
 
@@ -221,17 +208,19 @@
   </nav>
 
   <main>
-
-    <!-- ══ HOME ══════════════════════════════════════════════════════════ -->
     <div id="page-home" class="page visible">
       <div class="input-card">
         <label>Registrar gasto</label>
         <div class="input-row">
-          <input id="expense-input" type="text" placeholder="45.90 mercado"
-                 inputmode="text" autocorrect="off" autocapitalize="none" spellcheck="false" />
+          <input id="input-valor" type="number" placeholder="0,00"
+                 inputmode="decimal" min="0" step="0.01"
+                 style="max-width:110px" />
+          <input id="input-desc" type="text" placeholder="Descrição (ex: mercado)"
+                 autocomplete="off" autocorrect="off"
+                 autocapitalize="none" spellcheck="false" />
           <button onclick="addExpense()">+</button>
         </div>
-        <p class="hint">Digite <span>valor descrição</span> e pressione +</p>
+        <p class="hint">Ex: <span>45.90</span> + <span>mercado</span></p>
       </div>
 
       <div class="stats">
@@ -258,67 +247,41 @@
       </div>
     </div>
 
-    <!-- ══ RESUMO ═════════════════════════════════════════════════════════ -->
     <div id="page-resumo" class="page">
       <div class="month-selector">
         <button onclick="changeMonth(-1)">‹</button>
         <span id="resumo-month-label">—</span>
         <button onclick="changeMonth(+1)">›</button>
       </div>
-
       <div class="chart-wrap">
         <canvas id="bar-chart"></canvas>
       </div>
-
       <p class="section-title">Por categoria</p>
       <div class="cat-list" id="cat-list"></div>
-
       <button class="btn-export" onclick="exportExcel()">
         ⬇️ Exportar planilha Excel
       </button>
     </div>
 
-    <!-- ══ HISTÓRICO ══════════════════════════════════════════════════════ -->
     <div id="page-historico" class="page">
       <p class="section-title">Todos os gastos</p>
       <div class="tx-list" id="all-list"></div>
     </div>
-
   </main>
 </div>
 
 <div id="toast"></div>
 
 <script>
-// ═══════════════════════════════════════════════════════════════════════
-//  DATA LAYER — localStorage
-// ═══════════════════════════════════════════════════════════════════════
-
 const DB_KEY = 'finance_expenses_v1';
 
 function loadAll() {
   try { return JSON.parse(localStorage.getItem(DB_KEY)) || []; }
   catch { return []; }
 }
-
-function saveAll(data) {
-  localStorage.setItem(DB_KEY, JSON.stringify(data));
-}
-
-function addRecord(record) {
-  const data = loadAll();
-  data.unshift(record);
-  saveAll(data);
-}
-
-function deleteRecord(id) {
-  const data = loadAll().filter(r => r.id !== id);
-  saveAll(data);
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-//  CATEGORIZER
-// ═══════════════════════════════════════════════════════════════════════
+function saveAll(data) { localStorage.setItem(DB_KEY, JSON.stringify(data)); }
+function addRecord(record) { const data = loadAll(); data.unshift(record); saveAll(data); }
+function deleteRecord(id) { saveAll(loadAll().filter(r => r.id !== id)); }
 
 const CAT_MAP = {
   'Alimentação': ['mercado','supermercado','restaurante','lanche','pizza','comida','almoco','almoço','jantar','cafe','cafezinho','padaria','açougue','acougue','feira','ifood','rappi','hamburguer','sushi','churrasco','refeicao','marmita','hortifruti','doce','sorvete','lanchonete','mcdonalds','burguer','subway','frango','pao','pão','leite','carne','mercearia'],
@@ -329,21 +292,15 @@ const CAT_MAP = {
   'Educação': ['curso','livro','escola','faculdade','material','aula','udemy','coursera','apostila','caderno','mensalidade','matricula','workshop','treinamento'],
   'Compras': ['roupa','calcado','calçado','sapato','tenis','tênis','eletronico','eletrônico','shopee','americanas','magazine','renner','zara','shein','bolsa','mochila','relogio','oculos'],
 };
-
 const CAT_ICONS = {
   'Alimentação':'🍔','Transporte':'🚗','Saúde':'💊','Lazer':'🎬',
   'Moradia':'🏠','Educação':'📚','Compras':'🛍️','Outros':'💸',
 };
-
-const CAT_COLORS = [
-  '#4AADE8','#44BBA4','#F18F01','#A23B72',
-  '#C73E1D','#6C9A2D','#2E75B6','#7ea8cc',
-];
+const CAT_COLORS = ['#4AADE8','#44BBA4','#F18F01','#A23B72','#C73E1D','#6C9A2D','#2E75B6','#7ea8cc'];
 
 function normalize(s) {
-  return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
-
 function categorize(desc) {
   const n = normalize(desc);
   for (const [cat, kws] of Object.entries(CAT_MAP)) {
@@ -351,10 +308,6 @@ function categorize(desc) {
   }
   return 'Outros';
 }
-
-// ═══════════════════════════════════════════════════════════════════════
-//  DATE HELPERS
-// ═══════════════════════════════════════════════════════════════════════
 
 function fmtDate(d) {
   return d.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' });
@@ -368,56 +321,43 @@ function mesAnoLabel(ma) {
   return `${names[parseInt(m)-1]} ${y}`;
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-//  ADD EXPENSE
-// ═══════════════════════════════════════════════════════════════════════
-
-const EXPENSE_RE = /^(\d+(?:[.,]\d{1,2})?)\s+(.+)$/;
-
 function addExpense() {
-  const input = document.getElementById('expense-input');
-  const raw = input.value.trim();
+  const rawValor = document.getElementById('input-valor').value.trim();
+  const desc     = document.getElementById('input-desc').value.trim();
 
-  const match = raw.match(EXPENSE_RE);
-  if (!match) {
-    toast('Formato inválido. Ex: 45.90 mercado', true);
-    return;
-  }
+  if (!rawValor || !desc) { toast('Preencha o valor e a descrição', true); return; }
 
-  const value = parseFloat(match[1].replace(',', '.'));
-  const desc  = match[2].trim();
-  const cat   = categorize(desc);
-  const now   = new Date();
+  const value = parseFloat(rawValor.replace(',', '.'));
+  if (isNaN(value) || value <= 0) { toast('Valor inválido', true); return; }
 
-  addRecord({
-    id      : Date.now(),
-    data    : fmtDate(now),
-    descricao: desc,
-    valor   : value,
-    categoria: cat,
-    mesAno  : mesAno(now),
-  });
+  const cat = categorize(desc);
+  const now = new Date();
 
-  input.value = '';
+  addRecord({ id: Date.now(), data: fmtDate(now), descricao: desc,
+              valor: value, categoria: cat, mesAno: mesAno(now) });
+
+  document.getElementById('input-valor').value = '';
+  document.getElementById('input-desc').value  = '';
+  document.getElementById('input-desc').focus();
+
   toast(`✅ ${desc} — R$ ${value.toFixed(2).replace('.', ',')} (${cat})`);
   renderHome();
 }
 
-document.getElementById('expense-input').addEventListener('keydown', e => {
+document.getElementById('input-valor').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('input-desc').focus();
+});
+document.getElementById('input-desc').addEventListener('keydown', e => {
   if (e.key === 'Enter') addExpense();
 });
 
-// ═══════════════════════════════════════════════════════════════════════
-//  RENDER — HOME
-// ═══════════════════════════════════════════════════════════════════════
-
 function renderHome() {
-  const all       = loadAll();
-  const now       = new Date();
+  const all = loadAll();
+  const now = new Date();
   const currentMA = mesAno(now);
-  const month     = all.filter(r => r.mesAno === currentMA);
-  const total     = month.reduce((s, r) => s + r.valor, 0);
-  const cats      = new Set(month.map(r => r.categoria)).size;
+  const month = all.filter(r => r.mesAno === currentMA);
+  const total = month.reduce((s, r) => s + r.valor, 0);
+  const cats  = new Set(month.map(r => r.categoria)).size;
 
   document.getElementById('stat-total').textContent =
     'R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
@@ -425,25 +365,19 @@ function renderHome() {
   document.getElementById('stat-cats').textContent  = cats;
   document.getElementById('header-month').textContent = mesAnoLabel(currentMA);
 
-  const list = document.getElementById('recent-list');
+  const list   = document.getElementById('recent-list');
   const recent = all.slice(0, 20);
 
   if (!recent.length) {
-    list.innerHTML = `<div class="empty-state">
-      <span class="emoji">💸</span>
-      Nenhum gasto registrado ainda.<br>Digite acima para começar!
-    </div>`;
+    list.innerHTML = `<div class="empty-state"><span class="emoji">💸</span>Nenhum gasto registrado ainda.<br>Digite acima para começar!</div>`;
     return;
   }
-
   list.innerHTML = recent.map(r => txHTML(r)).join('');
 }
 
 function txHTML(r) {
   return `<div class="tx-item" id="tx-${r.id}">
-    <div class="tx-icon" style="background:${catColor(r.categoria)}22">
-      ${CAT_ICONS[r.categoria] || '💸'}
-    </div>
+    <div class="tx-icon" style="background:${catColor(r.categoria)}22">${CAT_ICONS[r.categoria] || '💸'}</div>
     <div class="tx-info">
       <div class="tx-desc">${esc(r.descricao)}</div>
       <div class="tx-meta">${r.data} · ${r.categoria}</div>
@@ -457,65 +391,46 @@ function remove(id) {
   deleteRecord(id);
   renderHome();
   renderHistorico();
-  if (document.getElementById('page-resumo').classList.contains('visible')) {
-    renderResumo();
-  }
+  if (document.getElementById('page-resumo').classList.contains('visible')) renderResumo();
   toast('Gasto removido');
 }
-
-// ═══════════════════════════════════════════════════════════════════════
-//  RENDER — RESUMO
-// ═══════════════════════════════════════════════════════════════════════
 
 let resumoMA = mesAno(new Date());
 let barChart = null;
 
 function changeMonth(delta) {
   const [m, y] = resumoMA.split('/').map(Number);
-  const d = new Date(y, m - 1 + delta, 1);
-  resumoMA = mesAno(d);
+  resumoMA = mesAno(new Date(y, m - 1 + delta, 1));
   renderResumo();
 }
 
 function renderResumo() {
   document.getElementById('resumo-month-label').textContent = mesAnoLabel(resumoMA);
-
   const data  = loadAll().filter(r => r.mesAno === resumoMA);
   const total = data.reduce((s, r) => s + r.valor, 0);
-
-  // group by category
   const groups = {};
-  data.forEach(r => {
-    groups[r.categoria] = (groups[r.categoria] || 0) + r.valor;
-  });
+  data.forEach(r => { groups[r.categoria] = (groups[r.categoria] || 0) + r.valor; });
   const sorted = Object.entries(groups).sort((a, b) => b[1] - a[1]);
 
-  // ── Category bars ──
   const catList = document.getElementById('cat-list');
   if (!sorted.length) {
-    catList.innerHTML = `<div class="empty-state">
-      <span class="emoji">📭</span>Nenhum gasto em ${mesAnoLabel(resumoMA)}.
-    </div>`;
+    catList.innerHTML = `<div class="empty-state"><span class="emoji">📭</span>Nenhum gasto em ${mesAnoLabel(resumoMA)}.</div>`;
   } else {
     catList.innerHTML = sorted.map(([cat, val], i) => {
-      const pct = total > 0 ? (val / total * 100).toFixed(1) : 0;
+      const pct   = total > 0 ? (val / total * 100).toFixed(1) : 0;
       const color = CAT_COLORS[i % CAT_COLORS.length];
       return `<div class="cat-item">
         <div class="cat-header">
           <span class="cat-name">${CAT_ICONS[cat] || '💸'} ${cat}</span>
           <span class="cat-val">R$ ${val.toFixed(2).replace('.', ',')} <small style="color:var(--muted);font-weight:400">(${pct}%)</small></span>
         </div>
-        <div class="progress-track">
-          <div class="progress-fill" style="width:${pct}%;background:${color}"></div>
-        </div>
+        <div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div>
       </div>`;
     }).join('');
   }
 
-  // ── Chart ──
   const ctx = document.getElementById('bar-chart');
   if (barChart) { barChart.destroy(); barChart = null; }
-
   if (sorted.length) {
     barChart = new Chart(ctx, {
       type: 'bar',
@@ -526,38 +441,23 @@ function renderResumo() {
           data: sorted.map(([, v]) => v),
           backgroundColor: sorted.map((_, i) => CAT_COLORS[i % CAT_COLORS.length] + 'cc'),
           borderColor:     sorted.map((_, i) => CAT_COLORS[i % CAT_COLORS.length]),
-          borderWidth: 1.5,
-          borderRadius: 7,
+          borderWidth: 1.5, borderRadius: 7,
         }]
       },
       options: {
         responsive: true,
         plugins: {
           legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: ctx => ' R$ ' + ctx.raw.toFixed(2).replace('.', ',')
-            }
-          }
+          tooltip: { callbacks: { label: ctx => ' R$ ' + ctx.raw.toFixed(2).replace('.', ',') } }
         },
         scales: {
           x: { ticks: { color: '#7ea8cc', font: { size: 11 } }, grid: { color: '#2a4a72' } },
-          y: {
-            ticks: {
-              color: '#7ea8cc', font: { size: 11 },
-              callback: v => 'R$' + v.toLocaleString('pt-BR')
-            },
-            grid: { color: '#2a4a72' }
-          }
+          y: { ticks: { color: '#7ea8cc', font: { size: 11 }, callback: v => 'R$' + v.toLocaleString('pt-BR') }, grid: { color: '#2a4a72' } }
         }
       }
     });
   }
 }
-
-// ═══════════════════════════════════════════════════════════════════════
-//  RENDER — HISTÓRICO
-// ═══════════════════════════════════════════════════════════════════════
 
 function renderHistorico() {
   const all  = loadAll();
@@ -569,29 +469,18 @@ function renderHistorico() {
   list.innerHTML = all.map(r => txHTML(r)).join('');
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-//  EXPORT EXCEL
-// ═══════════════════════════════════════════════════════════════════════
-
 function exportExcel() {
   const all = loadAll();
-  if (!all.empty && all.length === 0) { toast('Nenhum dado para exportar', true); return; }
+  if (!all.length) { toast('Nenhum dado para exportar', true); return; }
 
-  const wb   = XLSX.utils.book_new();
-
-  // ── Gastos sheet ──
-  const gastos = all.map(r => ({
-    'Data'       : r.data,
-    'Descrição'  : r.descricao,
-    'Valor (R$)' : r.valor,
-    'Categoria'  : r.categoria,
-    'Mês/Ano'    : r.mesAno,
-  }));
-  const ws = XLSX.utils.json_to_sheet(gastos);
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(all.map(r => ({
+    'Data': r.data, 'Descrição': r.descricao, 'Valor (R$)': r.valor,
+    'Categoria': r.categoria, 'Mês/Ano': r.mesAno,
+  })));
   ws['!cols'] = [{ wch:14 }, { wch:30 }, { wch:12 }, { wch:18 }, { wch:12 }];
   XLSX.utils.book_append_sheet(wb, ws, 'Gastos');
 
-  // ── Dashboard sheet ──
   const months = [...new Set(all.map(r => r.mesAno))].sort();
   const rows = [];
   months.forEach(ma => {
@@ -600,12 +489,8 @@ function exportExcel() {
     const groups = {};
     month.forEach(r => { groups[r.categoria] = (groups[r.categoria] || 0) + r.valor; });
     Object.entries(groups).sort((a,b) => b[1]-a[1]).forEach(([cat, val]) => {
-      rows.push({
-        'Mês/Ano'    : ma,
-        'Categoria'  : cat,
-        'Total (R$)' : val,
-        '% do Mês'   : total > 0 ? parseFloat((val/total*100).toFixed(1)) : 0,
-      });
+      rows.push({ 'Mês/Ano': ma, 'Categoria': cat, 'Total (R$)': val,
+                  '% do Mês': total > 0 ? parseFloat((val/total*100).toFixed(1)) : 0 });
     });
     rows.push({ 'Mês/Ano': ma, 'Categoria': 'TOTAL', 'Total (R$)': total, '% do Mês': 100 });
     rows.push({});
@@ -614,36 +499,24 @@ function exportExcel() {
   ws2['!cols'] = [{ wch:12 }, { wch:18 }, { wch:14 }, { wch:12 }];
   XLSX.utils.book_append_sheet(wb, ws2, 'Dashboard');
 
-  const now   = new Date();
-  const fname = `financas_${now.getFullYear()}_${String(now.getMonth()+1).padStart(2,'0')}.xlsx`;
-  XLSX.writeFile(wb, fname);
+  const now = new Date();
+  XLSX.writeFile(wb, `financas_${now.getFullYear()}_${String(now.getMonth()+1).padStart(2,'0')}.xlsx`);
   toast('📥 Planilha exportada!');
 }
-
-// ═══════════════════════════════════════════════════════════════════════
-//  NAVIGATION
-// ═══════════════════════════════════════════════════════════════════════
 
 function showPage(name, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('visible'));
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('visible');
   btn.classList.add('active');
-
   if (name === 'resumo')    renderResumo();
   if (name === 'historico') renderHistorico();
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-//  UTILS
-// ═══════════════════════════════════════════════════════════════════════
-
 function catColor(cat) {
-  const cats = Object.keys(CAT_MAP);
-  const idx  = cats.indexOf(cat);
+  const idx = Object.keys(CAT_MAP).indexOf(cat);
   return CAT_COLORS[idx >= 0 ? idx : CAT_COLORS.length - 1];
 }
-
 function esc(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
@@ -657,15 +530,10 @@ function toast(msg, err = false) {
   toastTimer = setTimeout(() => { el.className = ''; }, 2800);
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-//  SERVICE WORKER
-// ═══════════════════════════════════════════════════════════════════════
-
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(console.error);
 }
 
-// ── Boot ──
 renderHome();
 </script>
 </body>
